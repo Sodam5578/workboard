@@ -452,6 +452,26 @@ dialog::backdrop{background:#07101b80}
 .sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:#10b981}
 .sync-badge.syncing{color:#f59e0b}
 
+
+/* Today Events Showcase */
+.today-events-box{background:var(--purple-soft);border:1px solid #c4b5fd44;border-left:4px solid var(--purple);border-radius:14px;padding:15px 18px;margin-bottom:20px;box-shadow:0 2px 8px #7955a508}
+.today-events-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.today-events-head strong{display:flex;align-items:center;gap:7px;font-size:.9375rem;color:var(--purple);font-weight:700}
+.event-badge-count{background:var(--purple);color:#fff;border-radius:10px;padding:1px 7px;font-size:.6875rem;font-weight:600}
+.today-events-head .add-event-btn{font-size:.78125rem;color:var(--purple);background:var(--surface);border:1px solid #d8b4fe88;border-radius:7px;padding:4px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-weight:600;transition:.15s}
+.today-events-head .add-event-btn:hover{background:var(--surface-hover);border-color:var(--purple)}
+.today-events-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px}
+.event-card-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px;display:flex;gap:11px;align-items:flex-start;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
+.event-card-item:hover{transform:translateY(-1px);box-shadow:0 4px 14px #7955a514;border-color:var(--purple)}
+.event-time-badge{background:var(--purple-soft);color:var(--purple);border-radius:7px;padding:4px 7px;font-size:.8125rem;font-weight:700;white-space:nowrap;display:flex;flex-direction:column;align-items:center;line-height:1.2;min-width:48px}
+.event-time-badge small{font-size:.6875rem;font-weight:500;opacity:.85;margin-top:1px}
+.event-info-col{flex:1;min-width:0}
+.event-info-title{font-weight:600;font-size:.9375rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.event-info-sub{font-size:.75rem;color:var(--sub);margin-top:4px;display:flex;align-items:center;gap:7px}
+.event-notes-preview{display:inline-flex;align-items:center;gap:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);max-width:130px}
+.today-events-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface-alt);border:1px dashed var(--line);border-radius:10px;padding:9px 14px;margin-bottom:18px}
+.today-events-bar .bar-left{display:flex;align-items:center;gap:8px;color:var(--purple)}
+
 </style>
 </head>
 <body>
@@ -979,11 +999,48 @@ function statsHTML(){
  done=p.filter(o=>o.done&&todayKeyOfTimestamp(o.state.completedAt)===today),denom=done.length+pending.length,rate=denom?Math.round(done.length/denom*100):0;
  return `<div class="stats"><div class="stat first"><div class="stat-head">오늘 챙길 업무 ${ico('sun')}</div><div class="stat-num"><strong>${pending.length}</strong><small>건 · 지연 포함</small></div></div><div class="stat"><div class="stat-head">기한 지난 업무 ${ico('clock')}</div><div class="stat-num"><strong${late.length?' style="color:var(--red)"':''}>${late.length}</strong><small>건</small></div></div><div class="stat"><div class="stat-head">오늘 완료 ${ico('checkall')}</div><div class="stat-num"><strong>${done.length}</strong><small>건</small></div><div class="microbar" title="오늘 챙길 업무와 오늘 완료 합계 기준"><span style="width:${rate}%"></span></div></div></div>`;
 }
+
+function todayEventsSectionHTML(){
+ const day=todayKey(),events=data.events.filter(e=>e.date===day).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+ if(events.length>0){
+  return `<section class="today-events-box" aria-label="오늘의 회의 및 행사 일정">
+   <div class="today-events-head">
+    <strong>${ico('calendar')}오늘의 회의 · 행사 <span class="event-badge-count">${events.length}건</span></strong>
+    <button type="button" class="add-event-btn" data-action="new-event-today">${ico('plus','icon-sm')}일정 추가</button>
+   </div>
+   <div class="today-events-grid">
+    ${events.map(e=>{
+      const l=listOf(e.listId);
+      return `<div class="event-card-item" data-action="select-event" data-id="${h(e.id)}" tabindex="0" role="button" aria-label="${h(e.title)} 일정 상세">
+        <div class="event-time-badge">
+          <span>${e.time||'종일'}</span>
+          ${e.time?`<small>${e.duration}분</small>`:''}
+        </div>
+        <div class="event-info-col">
+          <div class="event-info-title">${h(e.title)}</div>
+          <div class="event-info-sub">
+            <span class="category"><span class="dot" style="--dot:${l.color}"></span>${h(l.name)}</span>
+            ${e.notes?`<span class="event-notes-preview" title="${h(e.notes)}">${ico('info','icon-sm')}${h(e.notes)}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+   </div>
+  </section>`;
+ } else {
+  return `<div class="today-events-bar">
+   <div class="bar-left">${ico('calendar')}<span style="font-size:0.875rem;color:var(--sub)">오늘 예정된 회의 · 행사가 없습니다.</span></div>
+   <button type="button" class="ghost" data-action="new-event-today" style="font-size:0.8125rem;color:var(--purple);padding:4px 8px;font-weight:600">${ico('plus','icon-sm')}회의 · 일정 추가</button>
+  </div>`;
+ }
+}
+
 function renderCenter(){
+
  if(ui.widget){$('#center').innerHTML=widgetCenterHTML();return}
  const [title,desc,icon]=titleOf(),day=todayKey();document.title=title+' · 업무노트';
  let html=`<div class="eyebrow">${day.replaceAll('-','.')} &nbsp; ${WD[dayOf(day)]}요일</div><div class="hero"><div><h2>${h(title)}</h2><p>${h(desc)}</p></div><div class="hero-icon ${ui.mode==='calendar'?'calendar-hero':''}">${ico(icon)}</div></div>`;
- if(ui.mode==='list'&&ui.nav==='today')html+=statsHTML();
+ if(ui.mode==='list'&&ui.nav==='today'){html+=statsHTML();html+=todayEventsSectionHTML();}
  if(data.demo)html+=`<div class="demo-banner">${ico('info')}화면 이해를 위한 예시 업무입니다. 실제 현황과는 무관합니다.<button data-action="start-empty">빈 목록으로 시작</button></div>`;
  if(ui.mode==='calendar'){html+=calendarHTML();$('#center').innerHTML=html;return}
  html+=`<div class="toolbar"><div class="filter-tabs">${[['all','전체'],['doing','진행 중'],['waiting','대기'],['high','우선순위 높음']].map(([k,n])=>`<button data-action="filter" data-filter="${k}" class="${ui.filter===k?'active':''}">${n}</button>`).join('')}</div><div class="tool-right">${ui.nav!=='completed'?`<label><input type="checkbox" id="showDone" ${ui.showDone?'checked':''}>완료 표시</label>`:''}<select id="sortSelect" class="sortselect" aria-label="정렬"><option value="date" ${ui.sort==='date'?'selected':''}>날짜순</option><option value="priority" ${ui.sort==='priority'?'selected':''}>우선순위순</option><option value="title" ${ui.sort==='title'?'selected':''}>이름순</option></select></div></div>`;
@@ -1328,6 +1385,7 @@ function openDay(d){
 async function action(el,e){
  const a=el.dataset.action,id=el.dataset.id,d=el.dataset.date;
  switch(a){
+ case 'new-event-today': editorOpen('event', null, null, todayKey()); break;
  case 'firebase-login': loginGoogle(); break;
  case 'firebase-logout': logoutGoogle(); break;
  case 'sync-now': uploadToCloud(true); break;
