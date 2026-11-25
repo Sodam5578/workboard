@@ -472,6 +472,50 @@ dialog::backdrop{background:#07101b80}
 .today-events-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface-alt);border:1px dashed var(--line);border-radius:10px;padding:9px 14px;margin-bottom:18px}
 .today-events-bar .bar-left{display:flex;align-items:center;gap:8px;color:var(--purple)}
 
+
+/* Notion Style Rich Memo & Docs */
+.notion-toolbar{display:flex;gap:4px;background:var(--surface-strong);padding:5px 8px;border-radius:8px 8px 0 0;border:1px solid var(--line);border-bottom:0;flex-wrap:wrap;align-items:center}
+.notion-toolbar button{padding:4px 7px;font-size:.75rem;color:var(--sub);border-radius:5px;background:var(--surface);border:1px solid var(--line);font-weight:600;display:inline-flex;align-items:center;gap:3px;cursor:pointer}
+.notion-toolbar button:hover{background:var(--surface-hover);color:var(--text);border-color:var(--blue)}
+.notion-textarea{border-radius:0 0 8px 8px!important;border-top:1px dashed var(--line)!important;min-height:160px;font-family:inherit;line-height:1.6}
+.notion-rendered{line-height:1.75;font-size:.9375rem;color:var(--text);overflow-wrap:anywhere}
+.notion-rendered h3.notion-h1{font-size:1.15rem;font-weight:700;margin:14px 0 6px;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:4px}
+.notion-rendered h4.notion-h2{font-size:1.02rem;font-weight:700;margin:12px 0 4px;color:var(--text)}
+.notion-rendered h5.notion-h3{font-size:.9375rem;font-weight:700;margin:10px 0 4px;color:var(--sub)}
+.notion-rendered p{margin:4px 0}
+.notion-callout{display:flex;gap:10px;background:var(--surface-strong);border:1px solid var(--line);border-radius:9px;padding:10px 13px;margin:8px 0;font-size:.875rem;line-height:1.6}
+.notion-callout .callout-icon{font-size:1.1rem;flex-shrink:0}
+.notion-todo-item{display:flex;align-items:flex-start;gap:8px;padding:3px 0;cursor:pointer;user-select:none;transition:opacity .15s}
+.notion-todo-item.done{color:var(--muted);text-decoration:line-through}
+.notion-todo-item .notion-box{width:17px;height:17px;border:1.6px solid var(--check-border);border-radius:4px;display:grid;place-items:center;flex-shrink:0;margin-top:4px;background:var(--surface);transition:.12s}
+.notion-todo-item:hover .notion-box{border-color:var(--blue)}
+.notion-todo-item.done .notion-box{background:var(--blue);border-color:var(--blue);color:#fff}
+.notion-todo-item.done .notion-box svg{width:12px;height:12px;stroke-width:2.5}
+.notion-bullet{margin:3px 0;padding-left:4px;list-style:disc inside}
+.notion-number{margin:3px 0;padding-left:4px;list-style:decimal inside}
+.notion-hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.notion-code{background:var(--surface-strong);border:1px solid var(--line);border-radius:4px;padding:2px 5px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.8125rem;color:var(--blue-ink)}
+.notion-mark{background:#fef08a;color:#713f12;padding:1px 4px;border-radius:3px}
+:root[data-theme="dark"] .notion-mark{background:#854d0e;color:#fef08a}
+
+/* Notes Workspace View */
+.notes-container{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;min-height:550px}
+@media(max-width:900px){.notes-container{grid-template-columns:1fr}}
+.notes-sidebar-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.notes-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 280px);padding-right:2px}
+.note-item-card{background:var(--surface-alt);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;transition:.15s;text-align:left;position:relative}
+.note-item-card:hover{border-color:var(--blue);transform:translateY(-1px);box-shadow:0 3px 10px #0000000a}
+.note-item-card.active{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 1.5px var(--blue)}
+.note-card-title{font-weight:700;font-size:.9375rem;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.note-card-meta{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--sub)}
+.note-card-snippet{font-size:.8125rem;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.5}
+.note-pin-badge{color:#eab308;font-size:.75rem}
+.note-view-pane{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:26px 30px;min-height:550px;overflow-y:auto}
+.note-view-header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px;gap:12px}
+.note-view-title{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;margin:0 0 8px;line-height:1.3}
+.note-view-meta{display:flex;align-items:center;gap:10px;font-size:.8125rem;color:var(--sub)}
+.note-view-actions{display:flex;gap:6px;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -766,10 +810,13 @@ function seed(){
   {id:'personal',name:'개인 업무',color:COLORS[3]}
  ],
  tasks:[],
- events:[]};
+ events:[],
+  notes:[]};
 }
 function validateData(x){
- if(!x||x.schemaVersion!==1||!Array.isArray(x.tasks)||!Array.isArray(x.events)||!Array.isArray(x.lists))throw Error('업무노트 백업 파일 형식이 아닙니다.');
+ if(!x||x.schemaVersion!==1)throw Error('형식 오류');
+ if(!Array.isArray(x.notes))x.notes=[];
+ if(!Array.isArray(x.tasks)||!Array.isArray(x.events)||!Array.isArray(x.lists))throw Error('업무노트 백업 파일 형식이 아닙니다.');
  if(x.tasks.length>1500||x.events.length>3000||x.lists.length>100||!x.lists.length)throw Error('백업의 데이터 수가 허용 범위를 벗어났습니다.');
  const str=(v,max=200)=>typeof v==='string'&&v.length<=max;
  const ids=new Set();
@@ -969,7 +1016,8 @@ function renderSidebar(){
  <p class="workspace-label">MY WORKSPACE</p>
  <div class="smart-grid">${smart.map(([id,label,icon,color])=>`<button class="smart ${ui.mode==='list'&&ui.nav===id?'active':''}" data-action="nav" data-nav="${id}"><div class="smart-top"><span class="smart-icon ${color}">${ico(icon)}</span><strong>${c[id]}</strong></div><span class="label">${label}</span></button>`).join('')}</div>
  <div class="nav-section"><div class="section-caption">빠르게 모아보기</div>
- ${[['flagged','중요한 업무','flag'],['projects','단계별 업무','steps'],['repeat','반복 업무','repeat'],['inbox','날짜 없음','inbox']].map(([id,label,icon])=>`<button class="navbtn ${ui.mode==='list'&&ui.nav===id?'active':''}" data-action="nav" data-nav="${id}">${ico(icon)}<span>${label}</span><span class="navcount">${c[id]}</span></button>`).join('')}</div>
+ ${[['flagged','중요한 업무','flag'],['projects','단계별 업무','steps'],['repeat','반복 업무','repeat'],['inbox','날짜 없음','inbox']].map(([id,label,icon])=>`<button class="navbtn ${ui.mode==='list'&&ui.nav===id?'active':''}" data-action="nav" data-nav="${id}">${ico(icon)}<span>${label}</span><span class="navcount">${c[id]}</span></button>`).join('')}
+<button class="navbtn ${ui.mode==='notes'?'active':''}" data-action="mode" data-mode="notes">${ico('edit')}<span>업무 노트 · 회의록</span><span class="navcount">${(data.notes||[]).length}</span></button></div>
  <div class="nav-section"><div class="section-caption">업무 분류<button class="iconbtn" data-action="new-list" aria-label="업무 분류 추가">${ico('plus','icon-sm')}</button></div>
  ${data.lists.map(l=>{const n=representative(pool().filter(o=>!o.done&&o.t.listId===l.id)).length;return `<button class="navbtn ${ui.mode==='list'&&ui.nav==='list:'+l.id?'active':''}" data-action="nav" data-nav="list:${h(l.id)}"><span class="dot listdot" style="--dot:${l.color}"></span><span>${h(l.name)}</span><span class="navcount">${n}</span></button>`}).join('')}
  </div><div class="sidebar-bottom">${storageBoxHTML()}<div class="bottom-actions"><button data-action="settings">${ico('settings','icon-sm')}설정 · 백업</button><button data-action="help">${ico('help','icon-sm')}사용 안내</button></div><p class="brand-version">VERSION 02 · 개인용 업무 공간</p></div>`;
@@ -981,7 +1029,7 @@ function renderTopbar(){
  }
  const old=$('#searchInput'),focus=old&&document.activeElement===old,start=old?.selectionStart;
  $('#topbar').innerHTML=`<button class="iconbtn menu-mobile" data-action="open-menu" aria-label="메뉴 열기">${ico('menu')}</button>
- <div class="mode-switch" aria-label="화면 전환"><button class="${ui.mode==='list'?'active':''}" data-action="mode" data-mode="list" aria-pressed="${ui.mode==='list'}">${ico('list','icon-sm')}업무 목록</button><button class="${ui.mode==='calendar'?'active':''}" data-action="mode" data-mode="calendar" aria-pressed="${ui.mode==='calendar'}">${ico('calendar','icon-sm')}업무 캘린더</button></div>
+ <div class="mode-switch" aria-label="화면 전환"><button class="${ui.mode==='list'?'active':''}" data-action="mode" data-mode="list" aria-pressed="${ui.mode==='list'}">${ico('list','icon-sm')}업무 목록</button><button class="${ui.mode==='calendar'?'active':''}" data-action="mode" data-mode="calendar" aria-pressed="${ui.mode==='calendar'}">${ico('calendar','icon-sm')}업무 캘린더</button><button class="${ui.mode==='notes'?'active':''}" data-action="mode" data-mode="notes" aria-pressed="${ui.mode==='notes'}">${ico('edit','icon-sm')}업무 노트</button></div>
  <div class="top-search">${ico('search')}<input id="searchInput" type="search" placeholder="업무 · 메모 검색" aria-label="업무 검색" value="${h(ui.search)}" autocomplete="off"><kbd>/</kbd></div>
  <div class="top-actions"><button class="iconbtn size-shortcut" data-action="settings" aria-label="글자 및 화면 크기 설정" title="글자 · 화면 크기">가A</button><button class="iconbtn theme-toggle" data-action="theme-toggle" aria-label="테마 전환">${ico('moon')}</button><button class="secondary mini-launch" data-action="open-widget" title="미니창 열기" aria-label="미니창 열기">${ico('window')}<span>미니창</span></button></div>
  <button class="primary" data-action="new-task" aria-label="업무 추가">${ico('plus','icon-sm')}<span>업무 추가</span></button>`;
@@ -1035,7 +1083,262 @@ function todayEventsSectionHTML(){
  }
 }
 
+
+// --- Notion Style Markdown & Rich Notes ---
+function noteOf(id){return data.notes?.find(n=>n.id===id)}
+
+function renderNotionMarkdown(raw, itemId='', itemType='task'){
+ if(!raw) return '<p style="color:var(--muted);font-size:0.875rem">메모가 비어 있습니다.</p>';
+ const lines = raw.split('\n');
+ let html = '';
+ let inCallout = false, calloutLines = [];
+ let inUl = false, inOl = false;
+
+ function closeLists(){
+  if(inUl){ html += '</ul>'; inUl = false; }
+  if(inOl){ html += '</ol>'; inOl = false; }
+ }
+ function flushCallout(){
+  if(inCallout){
+   html += `<div class="notion-callout"><span class="callout-icon">💡</span><div>${calloutLines.map(inlineFormat).join('<br>')}</div></div>`;
+   inCallout = false; calloutLines = [];
+  }
+ }
+ function inlineFormat(str){
+  let s = h(str);
+  s = s.replace(/==(.*?)==/g, '<mark class="notion-mark">$1</mark>');
+  s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  s = s.replace(/~~(.*?)~~/g, '<del>$1</del>');
+  s = s.replace(/`([^`]+)`/g, '<code class="notion-code">$1</code>');
+  s = s.replace(/\[(.*?)\]\((https?:\/\/[^\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return s;
+ }
+
+ for(let idx = 0; idx < lines.length; idx++){
+  const line = lines[idx];
+  const trimmed = line.trim();
+
+  if(trimmed.startsWith('>')){
+   closeLists();
+   inCallout = true;
+   calloutLines.push(trimmed.slice(1).trim());
+   continue;
+  } else {
+   flushCallout();
+  }
+
+  if(/^---$|^--- $/.test(trimmed)){
+   closeLists();
+   html += '<hr class="notion-hr">';
+   continue;
+  }
+
+  if(trimmed.startsWith('### ')){
+   closeLists();
+   html += `<h5 class="notion-h3">${inlineFormat(trimmed.slice(4))}</h5>`;
+   continue;
+  }
+  if(trimmed.startsWith('## ')){
+   closeLists();
+   html += `<h4 class="notion-h2">${inlineFormat(trimmed.slice(3))}</h4>`;
+   continue;
+  }
+  if(trimmed.startsWith('# ')){
+   closeLists();
+   html += `<h3 class="notion-h1">${inlineFormat(trimmed.slice(2))}</h3>`;
+   continue;
+  }
+
+  const todoMatch = trimmed.match(/^-\s*\[([ xX])\]\s*(.*)$/);
+  if(todoMatch){
+   closeLists();
+   const checked = todoMatch[1].toLowerCase() === 'x';
+   const text = todoMatch[2];
+   html += `<div class="notion-todo-item ${checked?'done':''}" data-action="toggle-notion-check" data-item-id="${h(itemId)}" data-item-type="${h(itemType)}" data-line="${idx}">
+    <span class="notion-box ${checked?'checked':''}">${checked?ico('check'):''}</span>
+    <span>${inlineFormat(text)}</span>
+   </div>`;
+   continue;
+  }
+
+  if(trimmed.startsWith('- ') || trimmed.startsWith('* ')){
+   if(inOl){ html += '</ol>'; inOl = false; }
+   if(!inUl){ html += '<ul>'; inUl = true; }
+   html += `<li class="notion-bullet">${inlineFormat(trimmed.slice(2))}</li>`;
+   continue;
+  }
+
+  const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+  if(numMatch){
+   if(inUl){ html += '</ul>'; inUl = false; }
+   if(!inOl){ html += '<ol>'; inOl = true; }
+   html += `<li class="notion-number">${inlineFormat(numMatch[2])}</li>`;
+   continue;
+  }
+
+  closeLists();
+  if(!trimmed){
+   html += '<div style="height:6px"></div>';
+  } else {
+   html += `<p>${inlineFormat(trimmed)}</p>`;
+  }
+ }
+ flushCallout();
+ closeLists();
+ return html;
+}
+
+function toggleNotionCheck(itemId, itemType, lineIdx){
+ let targetObj = null;
+ if(itemType === 'task') targetObj = taskOf(itemId);
+ else if(itemType === 'event') targetObj = eventOf(itemId);
+ else if(itemType === 'note') targetObj = noteOf(itemId);
+ if(!targetObj) return;
+
+ const field = itemType === 'note' ? 'content' : 'notes';
+ const text = targetObj[field] || '';
+ const lines = text.split('\n');
+ if(lineIdx < 0 || lineIdx >= lines.length) return;
+
+ const currLine = lines[lineIdx];
+ if(/-\s*\[ \]/.test(currLine)){
+  lines[lineIdx] = currLine.replace(/-\s*\[ \]/, '- [x]');
+ } else if(/-\s*\[[xX]\]/.test(currLine)){
+  lines[lineIdx] = currLine.replace(/-\s*\[[xX]\]/, '- [ ]');
+ }
+ targetObj[field] = lines.join('\n');
+ save();
+ if(itemType === 'note'){
+  renderCenter();
+ } else {
+  renderPanel();
+ }
+}
+
+function notionToolbarHTML(targetId){
+ return `<div class="notion-toolbar" data-target="${targetId}">
+  <button type="button" data-action="notion-tool" data-tool="h1" title="큰 제목"><b>H1</b></button>
+  <button type="button" data-action="notion-tool" data-tool="h2" title="중간 제목"><b>H2</b></button>
+  <button type="button" data-action="notion-tool" data-tool="bold" title="굵게"><b>B</b></button>
+  <button type="button" data-action="notion-tool" data-tool="todo" title="체크박스">${ico('checkall','icon-sm')} 할 일</button>
+  <button type="button" data-action="notion-tool" data-tool="bullet" title="불릿 목록">• 목록</button>
+  <button type="button" data-action="notion-tool" data-tool="callout" title="강조 박스">💡 강조</button>
+  <button type="button" data-action="notion-tool" data-tool="mark" title="형광펜">🖍️ 형광펜</button>
+  <button type="button" data-action="notion-tool" data-tool="hr" title="구분선">― 구분선</button>
+ </div>`;
+}
+
+function applyNotionTool(tool, targetId){
+ const el = document.getElementById(targetId);
+ if(!el) return;
+ const start = el.selectionStart, end = el.selectionEnd, val = el.value;
+ const sel = val.substring(start, end);
+ let ins = '';
+ switch(tool){
+  case 'h1': ins = `\n# ${sel||'큰 제목'}\n`; break;
+  case 'h2': ins = `\n## ${sel||'소제목'}\n`; break;
+  case 'bold': ins = `**${sel||'굵은 글씨'}**`; break;
+  case 'todo': ins = `\n- [ ] ${sel||'새로운 할 일'}\n`; break;
+  case 'bullet': ins = `\n- ${sel||'목록 항목'}\n`; break;
+  case 'callout': ins = `\n> ${sel||'중요 협의 내용 또는 강조 사항'}\n`; break;
+  case 'mark': ins = `==${sel||'형광펜 강조'}==`; break;
+  case 'hr': ins = `\n---\n`; break;
+ }
+ el.setRangeText(ins, start, end, 'end');
+ el.focus();
+}
+
+let activeNoteId = null;
+
+function notesViewHTML(){
+ if(!data.notes) data.notes = [];
+ const notes = data.notes.slice().sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0) || (b.updatedAt||'').localeCompare(a.updatedAt||''));
+ if(!activeNoteId && notes.length) activeNoteId = notes[0].id;
+ const currentNote = notes.find(n=>n.id===activeNoteId) || notes[0];
+
+ let listHTML = '';
+ for(const n of notes){
+  const l = listOf(n.listId);
+  const isAct = currentNote && currentNote.id === n.id;
+  listHTML += `<div class="note-item-card ${isAct?'active':''}" data-action="select-note" data-id="${h(n.id)}" tabindex="0" role="button">
+   <div class="note-card-title">${n.pinned?'<span class="note-pin-badge">📌</span>':''}${h(n.title||'제목 없음')}</div>
+   <div class="note-card-meta"><span class="dot" style="--dot:${l.color}"></span><span>${h(l.name)}</span> · <span>${(n.updatedAt||'').slice(0,10)}</span></div>
+   <div class="note-card-snippet">${h((n.content||'').replace(/[#*>\[\]]/g,'').trim().slice(0,80))}</div>
+  </div>`;
+ }
+
+ let detailPane = '';
+ if(currentNote){
+  const l = listOf(currentNote.listId);
+  detailPane = `<article class="note-view-pane">
+   <div class="note-view-header">
+    <div>
+     <h2 class="note-view-title">${currentNote.pinned?'📌 ':''}${h(currentNote.title||'제목 없음')}</h2>
+     <div class="note-view-meta">
+      <span class="category"><span class="dot" style="--dot:${l.color}"></span>${h(l.name)}</span>
+      <span>최종 수정: ${currentNote.updatedAt?fullDate(currentNote.updatedAt.slice(0,10)):''}</span>
+     </div>
+    </div>
+    <div class="note-view-actions">
+     <button class="secondary" data-action="edit-note" data-id="${h(currentNote.id)}">${ico('edit','icon-sm')}수정</button>
+     <button class="iconbtn" data-action="pin-note" data-id="${h(currentNote.id)}" title="${currentNote.pinned?'고정 해제':'상단 고정'}">${currentNote.pinned?'📌':'📍'}</button>
+     <button class="iconbtn" data-action="delete-note" data-id="${h(currentNote.id)}" title="삭제">${ico('trash','icon-sm')}</button>
+    </div>
+   </div>
+   <div class="notion-rendered">
+    ${renderNotionMarkdown(currentNote.content, currentNote.id, 'note')}
+   </div>
+  </article>`;
+ } else {
+  detailPane = `<div class="empty" style="padding:60px 20px">
+   ${ico('edit')}
+   <strong>작성된 업무 노트가 없습니다.</strong>
+   <p>회의록, 지침, 업무 아이디어를 노션처럼 깔끔하게 정리해 보세요.</p>
+   <button class="primary" data-action="new-note" style="margin-top:12px">${ico('plus','icon-sm')}새 노트 작성하기</button>
+  </div>`;
+ }
+
+ return `<div class="notes-container">
+  <aside class="notes-sidebar-card">
+   <div style="display:flex;justify-content:space-between;align-items:center">
+    <strong>${ico('edit')}업무 노트 (${notes.length}건)</strong>
+    <button class="primary" data-action="new-note" style="padding:6px 10px;font-size:0.8125rem">${ico('plus','icon-sm')}새 노트</button>
+   </div>
+   <div class="notes-list">
+    ${listHTML || '<div style="color:var(--muted);font-size:0.8125rem;text-align:center;padding:20px 0">노트가 없습니다.</div>'}
+   </div>
+  </aside>
+  ${detailPane}
+ </div>`;
+}
+
+function noteEditorOpen(id=null){
+ const n = id ? noteOf(id) : null;
+ const title = n ? n.title : '';
+ const content = n ? n.content : '# 📌 회의록 · 업무 지침\n\n> [개요] 주요 협의 내용 및 결정사항을 기록하세요.\n\n## 1. 안건 및 협의사항\n- 안건 내용 작성\n\n## 2. 향후 조치사항 (Action Items)\n- [ ] 추진할 업무 1\n- [ ] 검토할 자료 2';
+ const listId = n ? n.listId : data.lists[0].id;
+ 
+ $('#editorTitle').textContent = id ? '노트 수정' : '새 업무 노트 작성';
+ $('#saveButton').textContent = id ? '변경사항 저장' : '노트 저장';
+ editContext = { kind: 'note', id, baseSnapshot: n ? JSON.stringify(n) : null };
+
+ $('#editorBody').innerHTML = `
+ <div class="form-error hidden" id="formError" role="alert"></div>
+ <div class="field"><label for="fNoteTitle">노트 제목 <span style="color:var(--muted)">*</span></label><input id="fNoteTitle" maxlength="200" required value="${h(title)}" placeholder="예: [회의록] 11/25 현장 점검 협의" autocomplete="off"></div>
+ <div class="field"><label for="fNoteList">업무 분류</label><select id="fNoteList">${data.lists.map(l=>`<option value="${h(l.id)}" ${l.id===listId?'selected':''}>${h(l.name)}</option>`).join('')}</select></div>
+ <div class="field" style="margin-top:14px">
+  <label for="fNoteContent">노트 본문 (노션 스타일 마크다운 서식 지원)</label>
+  ${notionToolbarHTML('fNoteContent')}
+  <textarea id="fNoteContent" class="notion-textarea" maxlength="30000" placeholder="자유롭게 회의록이나 지침을 작성하세요.">${h(content)}</textarea>
+ </div>
+ `;
+ $('#editor').showModal();
+ $('#fNoteTitle').focus();
+}
+
 function renderCenter(){
+
 
  if(ui.widget){$('#center').innerHTML=widgetCenterHTML();return}
  const [title,desc,icon]=titleOf(),day=todayKey();document.title=title+' · 업무노트';
@@ -1134,14 +1437,14 @@ function detailHTML(o){
  <div class="detail-state">${checkHTML(o)}<span style="font-size:0.87500rem;color:var(--muted)">${o.done?'완료한 업무':'미완료'}</span>${!o.done?`<select id="detailStatus" data-id="${h(t.id)}" data-date="${h(o.date)}" aria-label="업무 상태">${Object.entries(STATUS).map(([v,n])=>`<option value="${v}" ${o.state.status===v?'selected':''}>${n}</option>`).join('')}</select>`:''}</div>
  ${total?`<div class="step-heading"><span style="font-size:0.87500rem;color:var(--muted)">업무 진행률</span><small>${done}/${total} 단계 · ${Math.round(done/total*100)}%</small></div><div class="progress-large"><span style="width:${Math.round(done/total*100)}%"></span></div>`:''}
  <dl class="detail-dl"><dt>${t.repeat?'이번 회차':'최종 마감'}</dt><dd>${fullDate(o.date)}${t.time?' '+h(t.time):''}</dd><dt>우선순위</dt><dd>${PRIORITY[t.priority]}</dd>${t.repeat?`<dt>반복 주기</dt><dd>${h(repeatLabel(t))}<br><span style="color:var(--muted);font-size:0.78125rem">${t.repeat.until?'종료: '+shortDate(t.repeat.until):'종료일 없음'}</span></dd>`:''}${o.done?`<dt>완료일</dt><dd>${fullDate(todayKeyOfTimestamp(o.state.completedAt))}</dd>`:''}</dl>
- ${t.notes?`<div class="detail-notes">${h(t.notes)}</div>`:''}
+ ${t.notes?`<div class="detail-notes notion-rendered">${renderNotionMarkdown(t.notes, t.id, 'task')}</div>`:''}
  ${total?`<div class="detail-steps"><h4>세부 단계</h4>${o.steps.map((s,i)=>`<div class="detail-step">${checkHTML(o,s.id,true)}<div class="detail-step-main ${s.done?'done':''}">${i+1}. ${h(s.title)}<small>${s.due?fullDate(s.due):'날짜 없음'}${!s.done&&s.due&&s.due<todayKey()?' · 기한 지남':''}</small></div></div>`).join('')}</div>`:''}
  ${t.repeat?`<div class="panel-tip"><strong>${ico('repeat')}다음 회차</strong>${future.length?future.map(shortDate).join(' · '):'예정된 다음 회차가 없습니다.'}<br>회차별 완료 상태는 별도로 저장됩니다. 단계가 있는 업무는 회차마다 체크리스트가 새로 시작됩니다.</div>`:''}
  <div class="detail-buttons"><button class="secondary" data-action="edit-task" ${selectionAttrs(o)}>${ico('edit','icon-sm')}수정</button><button class="secondary" data-action="duplicate-task" ${selectionAttrs(o)}>${ico('copy','icon-sm')}복제</button><button class="secondary danger-btn" data-action="delete-task" data-id="${h(t.id)}">${ico('trash','icon-sm')}삭제</button></div>
  ${t.repeat?'<p class="helptext">수정은 미완료·향후 회차에 공통 적용됩니다. 완료 이력은 완료 당시 구성으로 보관합니다. 삭제하면 모든 회차가 함께 삭제됩니다.</p>':''}`;
 }
 function eventDetailHTML(e){
- return `<div class="detail-top"><span class="detail-label">회의 · 일정</span><button class="iconbtn" data-action="close-detail" aria-label="닫기">${ico('x')}</button></div><div class="detail-category"><span class="dot" style="--dot:#a48acb"></span>${h(listOf(e.listId).name)}</div><h3 class="detail-title">${h(e.title)}</h3><dl class="detail-dl"><dt>날짜</dt><dd>${fullDate(e.date)}</dd><dt>시간</dt><dd>${timeLabel(e.time)}${e.time?' · '+e.duration+'분':''}</dd></dl>${e.notes?`<div class="detail-notes">${h(e.notes)}</div>`:''}<div class="panel-tip">회의·일정은 할 일과 구분되며 완료 체크 없이 캘린더에 표시됩니다.</div><div class="detail-buttons"><button class="secondary" data-action="edit-event" data-id="${h(e.id)}">${ico('edit','icon-sm')}수정</button><button class="secondary danger-btn" data-action="delete-event" data-id="${h(e.id)}">${ico('trash','icon-sm')}삭제</button></div>`;
+ return `<div class="detail-top"><span class="detail-label">회의 · 일정</span><button class="iconbtn" data-action="close-detail" aria-label="닫기">${ico('x')}</button></div><div class="detail-category"><span class="dot" style="--dot:#a48acb"></span>${h(listOf(e.listId).name)}</div><h3 class="detail-title">${h(e.title)}</h3><dl class="detail-dl"><dt>날짜</dt><dd>${fullDate(e.date)}</dd><dt>시간</dt><dd>${timeLabel(e.time)}${e.time?' · '+e.duration+'분':''}</dd></dl>${e.notes?`<div class="detail-notes notion-rendered">${renderNotionMarkdown(e.notes, e.id, 'event')}</div>`:''}<div class="panel-tip">회의·일정은 할 일과 구분되며 완료 체크 없이 캘린더에 표시됩니다.</div><div class="detail-buttons"><button class="secondary" data-action="edit-event" data-id="${h(e.id)}">${ico('edit','icon-sm')}수정</button><button class="secondary danger-btn" data-action="delete-event" data-id="${h(e.id)}">${ico('trash','icon-sm')}삭제</button></div>`;
 }
 function render(){
  document.title=ui.widget?'업무노트 · 미니창':titleOf()[0]+' · 업무노트';
@@ -1179,7 +1482,7 @@ function editorOpen(kind='task',id=null,date=null,newDate=null){
  ${id&&obj?.repeat?'<p class="helptext">수정은 미완료 회차와 향후 회차에 공통 적용됩니다. 이미 완료한 회차는 완료 당시의 제목과 단계 구성을 보관합니다.</p>':''}</div></div>
  <div class="form-section ${type==='steps'?'':'hidden'}" id="stepsSection"><div class="form-section-head"><span>세부 단계 <small style="color:var(--muted);font-weight:400">(작성 순서대로 진행)</small></span><button type="button" class="ghost" data-action="form-add-step">${ico('plus','icon-sm')}단계 추가</button></div>
  <div id="formSteps">${(obj?.steps||[]).map((s,i)=>stepInputHTML(s,i)).join('')}</div><p class="helptext">단계마다 처리할 날짜를 지정할 수 있습니다. 모든 단계를 체크하면 상위 업무도 완료됩니다.<br>반복 업무의 단계 날짜는 첫 실행일과의 날짜 간격을 기준으로 다음 회차에 적용됩니다.</p></div>
- <div class="form-section"><div class="field" style="margin:0"><label for="fNotes">메모</label><textarea id="fNotes" maxlength="10000" placeholder="검토사항, 참고자료, 다음에 할 일 등을 적어보세요.">${h(obj?.notes||'')}</textarea></div></div>`;
+ <div class="form-section"><div class="field" style="margin:0"><label for="fNotes">메모 (노션 스타일 마크다운 서식 지원)</label>${notionToolbarHTML('fNotes')}<textarea id="fNotes" class="notion-textarea" maxlength="10000" placeholder="검토사항, 참고자료, 다음에 할 일 등을 적어보세요.">${h(obj?.notes||'')}</textarea></div></div>`;
  updateEditorType(type);
  updateRepeatFields();
  if(type==='steps'&&!obj?.steps?.length)addFormStep();
@@ -1220,7 +1523,28 @@ function updateRepeatFields(){
 function formError(msg){$('#formError').textContent=msg;$('#formError').classList.remove('hidden');$('#editorBody').scrollTop=0;return false}
 function readFormSteps(){return [...document.querySelectorAll('.form-step')].map(el=>({id:el.dataset.stepid,title:el.querySelector('.step-title-input').value.trim(),due:el.querySelector('.step-date-input').value}))}
 async function submitEditor(e){
- e.preventDefault();if(!editContext)return;
+ e.preventDefault();
+ if(editContext?.kind === 'note'){
+  const title = $('#fNoteTitle').value.trim();
+  const content = $('#fNoteContent').value;
+  const listId = $('#fNoteList').value;
+  if(!title){ formError('노트 제목을 입력해 주세요.'); return; }
+  if(!data.notes) data.notes = [];
+  if(editContext.id){
+   const n = noteOf(editContext.id);
+   if(n){ n.title = title; n.content = content; n.listId = listId; n.updatedAt = now(); }
+  } else {
+   const newId = uid();
+   data.notes.push({ id: newId, title, content, listId, pinned: false, createdAt: now(), updatedAt: now() });
+   activeNoteId = newId;
+  }
+  $('#editor').close();
+  save();
+  renderCenter();
+  toast('업무 노트가 저장되었습니다.');
+  return;
+ }
+if(!editContext)return;
  const title=$('#fTitle').value.trim(),due=$('#fDue').value,time=$('#fTime').value,listId=$('#fList').value,notes=$('#fNotes').value;
  if(!title)return formError('업무 제목을 입력해 주세요.');
  if(due&&!validDate(due))return formError('날짜는 2000년부터 2100년 사이의 유효한 날짜로 입력해 주세요.');
@@ -1386,6 +1710,14 @@ async function action(el,e){
  const a=el.dataset.action,id=el.dataset.id,d=el.dataset.date;
  switch(a){
  case 'new-event-today': editorOpen('event', null, null, todayKey()); break;
+ case 'new-note': noteEditorOpen(); break;
+ case 'edit-note': noteEditorOpen(id); break;
+ case 'select-note': activeNoteId = id; renderCenter(); break;
+ case 'pin-note': { const n = noteOf(id); if(n){ n.pinned = !n.pinned; save(); renderCenter(); toast(n.pinned?'노트를 상단에 고정했습니다.':'노트 고정을 해제했습니다.'); } break; }
+ case 'delete-note': { if(await confirmAction('노트를 삭제할까요?', '작성한 노트 내용이 삭제됩니다.', '삭제')){ data.notes = (data.notes||[]).filter(n=>n.id!==id); if(activeNoteId===id) activeNoteId=data.notes[0]?.id||null; save(); renderCenter(); toast('노트를 삭제했습니다.'); } break; }
+ case 'toggle-notion-check': { toggleNotionCheck(el.dataset.itemId, el.dataset.itemType, parseInt(el.dataset.line, 10)); break; }
+ case 'notion-tool': { const target = el.closest('.notion-toolbar').dataset.target; applyNotionTool(el.dataset.tool, target); break; }
+
  case 'firebase-login': loginGoogle(); break;
  case 'firebase-logout': logoutGoogle(); break;
  case 'sync-now': uploadToCloud(true); break;
