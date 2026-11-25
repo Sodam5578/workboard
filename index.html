@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="ko">
 <head>
+<!-- Firebase Compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
@@ -436,6 +441,17 @@ dialog::backdrop{background:#07101b80}
  .app,.main,.body-grid,.widget-mode .app{display:block;height:auto;overflow:visible}
 }
 
+
+/* Firebase Cloud Sync UI */
+.cloud-login-btn{margin-top:9px;width:100%;background:#245fdf;color:#fff;border-radius:8px;padding:8px 10px;font-size:.8125rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;border:none}
+.cloud-login-btn:hover{background:#1d4ed8}
+.cloud-btn-group{display:flex;gap:6px;margin-top:8px}
+.cloud-sub-btn{flex:1;background:var(--surface-hover);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:.75rem;color:var(--text);display:flex;align-items:center;justify-content:center;gap:4px}
+.cloud-sub-btn:hover{background:var(--surface-strong)}
+.cloud-email{font-weight:600;color:var(--text);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.8125rem}
+.sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;color:#10b981}
+.sync-badge.syncing{color:#f59e0b}
+
 </style>
 </head>
 <body>
@@ -463,6 +479,201 @@ dialog::backdrop{background:#07101b80}
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <script>
 "use strict";
+
+// --- Firebase Config & Cloud Sync ---
+const firebaseConfig = {
+  apiKey: "AIzaSyA9BzJq9myauGL8plOclrOxjPoTaR_QMWk",
+  authDomain: "my-workboard-e8707.firebaseapp.com",
+  projectId: "my-workboard-e8707",
+  storageBucket: "my-workboard-e8707.firebasestorage.app",
+  messagingSenderId: "556943133618",
+  appId: "1:556943133618:web:838028167046355838f2ab",
+  measurementId: "G-KBXBH03T4G"
+};
+
+let firebaseApp = null, fbAuth = null, fbDb = null;
+let currentUser = null;
+let isSyncing = false;
+let cloudUnsub = null;
+let lastSyncStr = '';
+let cloudSyncTimer = null;
+
+try {
+  if (typeof firebase !== 'undefined') {
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    fbDb.enablePersistence({ synchronizeTabs: true }).catch(err => {
+      console.warn('Firestore offline persistence:', err.code);
+    });
+  }
+} catch (e) {
+  console.error('Firebase init failed:', e);
+}
+
+function debouncedCloudSync() {
+  if (!currentUser || !fbDb) return;
+  if (cloudSyncTimer) clearTimeout(cloudSyncTimer);
+  updateSyncStatus('동기화 중...');
+  cloudSyncTimer = setTimeout(() => {
+    uploadToCloud();
+  }, 1000);
+}
+
+async function uploadToCloud(manual = false) {
+  if (!currentUser || !fbDb) {
+    if (manual) toast('로그인이 필요합니다.');
+    return;
+  }
+  isSyncing = true;
+  updateSyncStatus('클라우드 저장 중...');
+  try {
+    const payloadStr = JSON.stringify(data);
+    await fbDb.collection('users').doc(currentUser.uid).collection('workboard').doc('main').set({
+      payload: payloadStr,
+      updatedAt: data.updatedAt || now(),
+      clientTimestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    lastSyncStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    updateSyncStatus('동기화 완료 (' + lastSyncStr + ')');
+    if (manual) toast('클라우드에 안전하게 저장되었습니다.');
+  } catch (err) {
+    console.error('Cloud upload error:', err);
+    updateSyncStatus('동기화 실패');
+    if (manual) toast('동기화 실패: ' + err.message);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function downloadFromCloud(manual = false) {
+  if (!currentUser || !fbDb) return;
+  try {
+    const docRef = fbDb.collection('users').doc(currentUser.uid).collection('workboard').doc('main');
+    const doc = await docRef.get();
+    if (doc.exists) {
+      const r = doc.data();
+      if (r && r.payload) {
+        const remoteData = validateData(JSON.parse(r.payload));
+        data = remoteData;
+        save(false);
+        render();
+        lastSyncStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        updateSyncStatus('동기화 완료 (' + lastSyncStr + ')');
+        if (manual) toast('클라우드에서 최신 데이터를 불러왔습니다.');
+      }
+    } else {
+      uploadToCloud();
+    }
+  } catch (err) {
+    console.error('Cloud download error:', err);
+    if (manual) toast('불러오기 실패: ' + err.message);
+  }
+}
+
+function listenToCloudChanges(uid) {
+  if (cloudUnsub) cloudUnsub();
+  const docRef = fbDb.collection('users').doc(uid).collection('workboard').doc('main');
+  cloudUnsub = docRef.onSnapshot(snapshot => {
+    if (!snapshot.exists || snapshot.metadata.hasPendingWrites) return;
+    const r = snapshot.data();
+    if (r && r.payload) {
+      try {
+        const remoteData = validateData(JSON.parse(r.payload));
+        if (!data.updatedAt || (remoteData.updatedAt && remoteData.updatedAt > data.updatedAt)) {
+          data = remoteData;
+          poolCache = null;
+          save(false);
+          render();
+          lastSyncStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+          updateSyncStatus('동기화 완료 (' + lastSyncStr + ')');
+          toast('다른 기기에서 변경된 내용을 반영했습니다.');
+        }
+      } catch (e) {
+        console.error('Remote sync parsing error:', e);
+      }
+    }
+  }, err => {
+    console.warn('Cloud listener error:', err);
+  });
+}
+
+function updateSyncStatus(text) {
+  const el = document.getElementById('syncStatusText');
+  if (el) el.textContent = text;
+}
+
+async function loginGoogle() {
+  if (!fbAuth) { toast('Firebase가 초기화되지 않았습니다.'); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await fbAuth.signInWithPopup(provider);
+  } catch (err) {
+    if (err.code === 'auth/popup-blocked') {
+      try {
+        await fbAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+      } catch (e2) {
+        toast('로그인 오류: ' + e2.message);
+      }
+    } else if (err.code === 'auth/unauthorized-domain') {
+      toast('Firebase 승인된 도메인에 현재 웹 주소를 추가해야 합니다.');
+      alert('Firebase 콘솔 > Authentication > 설정 > 승인된 도메인에\n' + location.hostname + ' 을 추가해 주세요.');
+    } else {
+      toast('로그인 실패: ' + err.message);
+    }
+  }
+}
+
+async function logoutGoogle() {
+  if (!fbAuth) return;
+  if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+  await fbAuth.signOut();
+  currentUser = null;
+  renderSidebar();
+  toast('로그아웃되었습니다. (현재 데이터는 이 브라우저에 유지됩니다)');
+}
+
+function storageBoxHTML() {
+  if (currentUser) {
+    return `<div class="storage-box cloud-box">
+      <div class="storage-title"><span class="dot" style="background:#10b981"></span>클라우드 실시간 동기화</div>
+      <p class="storage-note"><span class="cloud-email" title="${h(currentUser.email)}">${h(currentUser.email)}</span><span id="syncStatusText" style="color:#10b981;font-size:0.75rem">${lastSyncStr ? '동기화 완료 (' + lastSyncStr + ')' : '연결됨'}</span></p>
+      <div class="cloud-btn-group">
+        <button class="cloud-sub-btn" data-action="sync-now" title="지금 클라우드로 즉시 업로드">${ico('upload','icon-sm')}동기화</button>
+        <button class="cloud-sub-btn" data-action="firebase-logout" title="로그아웃">로그아웃</button>
+      </div>
+    </div>`;
+  } else {
+    return `<div class="storage-box cloud-box">
+      <div class="storage-title"><span class="dot" style="background:#f59e0b"></span>로컬 저장 중</div>
+      <p class="storage-note">로그인 시 여러 기기에서 실시간으로 자동 동기화됩니다.</p>
+      <button class="cloud-login-btn" data-action="firebase-login">${ico('spark','icon-sm')}Google 로그인</button>
+    </div>`;
+  }
+}
+
+function cloudSettingsHTML() {
+  if (currentUser) {
+    return `<section class="device-card" style="border:1.5px solid #245fdf2b">
+      <h3>${ico('spark')}Google 클라우드 동기화 (연결됨)</h3>
+      <p>계정: <strong>${h(currentUser.email)}</strong><br>모든 기기(PC, 휴대폰)에서 같은 계정으로 로그인하면 실시간으로 업무가 동기화됩니다.</p>
+      <div class="guide-actions">
+        <button class="primary" data-action="sync-now">${ico('upload','icon-sm')}지금 클라우드에 저장</button>
+        <button class="secondary" data-action="sync-download">${ico('download','icon-sm')}클라우드에서 불러오기</button>
+        <button class="secondary" data-action="firebase-logout">로그아웃</button>
+      </div>
+    </section>`;
+  } else {
+    return `<section class="device-card">
+      <h3>${ico('spark')}Google 클라우드 동기화 (미연결)</h3>
+      <p>구글 계정으로 로그인하면 Firebase Firestore와 연결되어 기기 간 실시간 동기화 및 영구 보존이 가능합니다.</p>
+      <div class="guide-actions">
+        <button class="primary" data-action="firebase-login">${ico('spark','icon-sm')}Google 로그인</button>
+      </div>
+    </section>`;
+  }
+}
+
 
 const ICONS={
 moon:'<path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/>',
@@ -566,10 +777,11 @@ function validateData(x){
 let data;
 try{const raw=localStorage.getItem(KEY);data=raw?validateData(JSON.parse(raw)):seed();}
 catch(e){data=seed();blockedStorage=true;storageError='기존 저장자료를 읽지 못했거나 저장소 접근이 제한되었습니다. 현재 변경사항은 이 창에만 유지됩니다. 설정에서 JSON 백업을 저장해 주세요.'}
-function save(){
+function save(syncCloud=true){
  poolCache=null;data.updatedAt=now();
  if(!blockedStorage){try{localStorage.setItem(KEY,JSON.stringify(data));storageError=''}catch(e){storageError='브라우저 저장에 실패했습니다. 창을 닫기 전에 설정에서 JSON 백업을 저장해 주세요.'}}
  renderWarning();
+ if(syncCloud && currentUser) debouncedCloudSync();
 }
 function renderWarning(){const el=$('#storageWarning');el.textContent=storageError;el.classList.toggle('hidden',!storageError)}
 function mutate(fn,message,undo=true){
@@ -740,7 +952,7 @@ function renderSidebar(){
  ${[['flagged','중요한 업무','flag'],['projects','단계별 업무','steps'],['repeat','반복 업무','repeat'],['inbox','날짜 없음','inbox']].map(([id,label,icon])=>`<button class="navbtn ${ui.mode==='list'&&ui.nav===id?'active':''}" data-action="nav" data-nav="${id}">${ico(icon)}<span>${label}</span><span class="navcount">${c[id]}</span></button>`).join('')}</div>
  <div class="nav-section"><div class="section-caption">업무 분류<button class="iconbtn" data-action="new-list" aria-label="업무 분류 추가">${ico('plus','icon-sm')}</button></div>
  ${data.lists.map(l=>{const n=representative(pool().filter(o=>!o.done&&o.t.listId===l.id)).length;return `<button class="navbtn ${ui.mode==='list'&&ui.nav==='list:'+l.id?'active':''}" data-action="nav" data-nav="list:${h(l.id)}"><span class="dot listdot" style="--dot:${l.color}"></span><span>${h(l.name)}</span><span class="navcount">${n}</span></button>`}).join('')}
- </div><div class="sidebar-bottom"><div class="storage-box"><div class="storage-title"><span class="dot"></span>내 브라우저에 저장</div><p class="storage-note">기기 간 동기화는 연결되지 않았습니다.<br>자료 이동 전 JSON으로 백업해 주세요.</p></div><div class="bottom-actions"><button data-action="settings">${ico('settings','icon-sm')}설정 · 백업</button><button data-action="help">${ico('help','icon-sm')}사용 안내</button></div><p class="brand-version">VERSION 02 · 개인용 업무 공간</p></div>`;
+ </div><div class="sidebar-bottom">${storageBoxHTML()}<div class="bottom-actions"><button data-action="settings">${ico('settings','icon-sm')}설정 · 백업</button><button data-action="help">${ico('help','icon-sm')}사용 안내</button></div><p class="brand-version">VERSION 02 · 개인용 업무 공간</p></div>`;
 }
 function renderTopbar(){
  if(ui.widget){
@@ -1091,7 +1303,7 @@ async function importJSON(file){
 }
 function settingsOpen(helpOnly=false){
  $('#settings').innerHTML=`<div class="modal-header"><div><h2 id="settingsTitle">${helpOnly?'업무노트 사용 안내':'설정 · 데이터 관리'}</h2><p>업무 관리 시스템 · 화면 설정 및 데이터 관리</p></div><button class="iconbtn" data-action="close-settings" aria-label="닫기">${ico('x')}</button></div><div class="modal-body">
- ${!helpOnly?appearanceHTML()+deviceCardHTML():''}
+ ${!helpOnly?cloudSettingsHTML()+appearanceHTML()+deviceCardHTML():''}
  ${!helpOnly?`<div class="settings-grid"><div class="settings-card"><h3>${ico('download','icon-sm')}전체 데이터 백업</h3><p>업무·세부 단계·반복 회차의 완료 이력·일정을 JSON으로 저장합니다.</p><button class="secondary" data-action="export-json">JSON 백업</button></div><div class="settings-card"><h3>${ico('upload','icon-sm')}백업 복원</h3><p>이 시스템에서 저장한 JSON으로 복원합니다. 현재 자료를 교체합니다.</p><button class="secondary" data-action="import-json">백업 불러오기</button></div><div class="settings-card"><h3>${ico('list','icon-sm')}업무 목록 내보내기</h3><p>업무 목록을 CSV로 저장합니다. 반복 회차는 향후 35일까지와 이후 첫 미완료 회차를 포함합니다.</p><button class="secondary" data-action="export-csv">CSV 내보내기</button></div><div class="settings-card"><h3>${ico('calendar','icon-sm')}캘린더 사본 저장</h3><p>현재 월/주의 표시 항목을 ICS 일정으로 저장합니다. 양방향 동기화가 아닙니다.</p><button class="secondary" data-action="export-ics">ICS 내보내기</button></div></div>`:''}
  <div class="howto"><h3>01. 할 일을 적고, 날짜를 정하세요.</h3><p>상단의 「업무 추가」에서 단일 업무, 단계별 업무, 회의·일정을 선택합니다. 목록의 빠른 입력칸에서는 제목만 입력해 추가할 수 있습니다. 빠른 추가는 기본적으로 오늘 마감이며, 「날짜 없음」에서는 날짜 없이 등록됩니다.</p>
  <h3>02. 큰 업무는 작은 단계로 나누세요.</h3><p>단계별 업무는 각 단계에 별도의 처리일을 지정할 수 있습니다. 마지막 단계를 완료하면 상위 업무도 자동 완료됩니다. 상위 업무를 먼저 완료하면 미완료 단계를 함께 완료할지 확인합니다. 상위 업무의 완료를 취소하면 모든 단계도 미완료로 돌아갑니다.</p>
@@ -1116,6 +1328,10 @@ function openDay(d){
 async function action(el,e){
  const a=el.dataset.action,id=el.dataset.id,d=el.dataset.date;
  switch(a){
+ case 'firebase-login': loginGoogle(); break;
+ case 'firebase-logout': logoutGoogle(); break;
+ case 'sync-now': uploadToCloud(true); break;
+ case 'sync-download': downloadFromCloud(true); break;
  case 'theme-toggle':prefs.theme=themeResolved()==='dark'?'light':'dark';storePrefs();break;
  case 'set-theme':if(['light','dark','system'].includes(el.dataset.value)){prefs.theme=el.dataset.value;storePrefs()}break;
  case 'set-size':if(['comfortable','large','xlarge'].includes(el.dataset.value)){prefs.size=el.dataset.value;storePrefs()}break;
@@ -1366,6 +1582,44 @@ let lastToday=todayKey();
 setInterval(()=>{const t=todayKey();if(t!==lastToday){lastToday=t;poolCache=null;render()}},60000);
 ui.widget=location.hash==='#mini';document.body.classList.toggle('widget-mode',ui.widget);
 applyAppearance();render();if(!blockedStorage)save();startPWA();
+if (fbAuth) {
+  fbAuth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    renderSidebar();
+    if (user) {
+      lastSyncStr = '확인 중...';
+      try {
+        const docRef = fbDb.collection('users').doc(user.uid).collection('workboard').doc('main');
+        const doc = await docRef.get();
+        if (doc.exists) {
+          const r = doc.data();
+          if (r && r.payload) {
+            const remoteData = validateData(JSON.parse(r.payload));
+            const localIsEmpty = (!data.tasks.length && !data.events.length);
+            if (localIsEmpty || !data.updatedAt || (remoteData.updatedAt && remoteData.updatedAt >= data.updatedAt)) {
+              data = remoteData;
+              save(false);
+              render();
+            } else if (data.updatedAt && remoteData.updatedAt && data.updatedAt > remoteData.updatedAt) {
+              uploadToCloud();
+            }
+          }
+        } else {
+          uploadToCloud();
+        }
+        lastSyncStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        updateSyncStatus('동기화 완료 (' + lastSyncStr + ')');
+        listenToCloudChanges(user.uid);
+      } catch (err) {
+        console.error('Initial sync error:', err);
+      }
+    } else {
+      if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+      renderSidebar();
+    }
+  });
+}
+
 </script>
 </body>
 </html>
