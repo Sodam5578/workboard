@@ -537,6 +537,46 @@ dialog::backdrop{background:#07101b80}
 </dialog>
 <dialog id="settings" class="modal-only-wide" aria-labelledby="settingsTitle"></dialog>
 <dialog id="confirmDialog" aria-labelledby="confirmTitle"><div class="modal-header"><h2 id="confirmTitle">확인</h2></div><div class="modal-body"><p id="confirmText" class="confirm-text"></p></div><div class="modal-footer"><button class="secondary" id="confirmNo">취소</button><button class="primary" id="confirmYes">확인</button></div></dialog>
+<dialog id="authDialog" aria-labelledby="authDialogTitle" style="max-width:420px;border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow)">
+  <div class="modal-header">
+    <div>
+      <h2 id="authDialogTitle">계정 로그인 · 회원가입</h2>
+      <p id="authDialogDesc">기기 간 실시간 자동 동기화를 위한 자체 계정</p>
+    </div>
+    <button type="button" class="iconbtn" data-action="close-auth" aria-label="닫기">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="type-tabs" style="margin-bottom:16px">
+      <button type="button" class="active" data-action="auth-tab" data-tab="login">로그인</button>
+      <button type="button" data-action="auth-tab" data-tab="signup">새 계정 생성 (회원가입)</button>
+    </div>
+    <div class="form-error hidden" id="authError" role="alert" style="margin-bottom:12px;padding:9px 12px;border-radius:8px;background:var(--red-soft);color:var(--red);font-size:.8125rem"></div>
+    <form id="authForm">
+      <div class="field">
+        <label for="authEmail">이메일 (아이디)</label>
+        <input id="authEmail" type="email" required placeholder="예: user@company.kr 또는 개인 이메일" autocomplete="username">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="authPassword">비밀번호</label>
+        <input id="authPassword" type="password" required placeholder="비밀번호 (6자리 이상)" autocomplete="current-password">
+      </div>
+      <div class="field hidden" id="authConfirmField" style="margin-top:10px">
+        <label for="authPasswordConfirm">비밀번호 확인</label>
+        <input id="authPasswordConfirm" type="password" placeholder="비밀번호를 한 번 더 입력하세요" autocomplete="new-password">
+      </div>
+      <button type="submit" class="primary" id="authSubmitBtn" style="width:100%;margin-top:16px;padding:11px;font-size:0.9375rem;justify-content:center">로그인</button>
+    </form>
+    <div class="auth-divider" style="display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:0.75rem">
+      <span style="flex:1;height:1px;background:var(--line)"></span>또는<span style="flex:1;height:1px;background:var(--line)"></span>
+    </div>
+    <button type="button" class="secondary" data-action="google-login-direct" style="width:100%;font-size:0.8125rem;padding:9px;justify-content:center">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7L12 3Z"/></svg>
+      Google 계정으로 계속하기
+    </button>
+  </div>
+</dialog>
 <dialog id="listDialog" aria-labelledby="listTitle"><form id="listForm"><div class="modal-header"><h2 id="listTitle">새 업무 분류</h2><button type="button" class="iconbtn" data-action="close-list" data-icon="x" aria-label="닫기"></button></div><div class="modal-body"><div class="field"><label for="listName">분류 이름</label><input id="listName" maxlength="30" required placeholder="예: 현장 점검, 보고자료"></div><div class="new-list-color" id="colorPicker"></div></div><div class="modal-footer"><button type="button" class="secondary" data-action="close-list">취소</button><button class="primary" type="submit">분류 추가</button></div></form></dialog>
 <dialog id="deviceGuide" class="modal-only-wide" aria-labelledby="deviceGuideTitle"></dialog>
 <input id="importFile" type="file" accept=".json,application/json" hidden>
@@ -667,7 +707,111 @@ function updateSyncStatus(text) {
   if (el) el.textContent = text;
 }
 
+
+// --- Email / Password Custom Account Authentication ---
+let authMode = 'login';
+
+function openAuthDialog(mode='login') {
+  authMode = mode;
+  $('#authError').classList.add('hidden');
+  $('#authEmail').value = '';
+  $('#authPassword').value = '';
+  if($('#authPasswordConfirm')) $('#authPasswordConfirm').value = '';
+  updateAuthTab(mode);
+  $('#authDialog').showModal();
+  $('#authEmail').focus();
+}
+
+function updateAuthTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('[data-action="auth-tab"]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === mode);
+  });
+  if (mode === 'signup') {
+    $('#authDialogTitle').textContent = '새 계정 생성 (회원가입)';
+    $('#authDialogDesc').textContent = '아이디로 쓸 이메일과 비밀번호를 입력해 주세요';
+    $('#authConfirmField').classList.remove('hidden');
+    $('#authSubmitBtn').textContent = '회원가입 및 시작하기';
+  } else {
+    $('#authDialogTitle').textContent = '계정 로그인';
+    $('#authDialogDesc').textContent = '등록한 계정으로 로그인하여 실시간 동기화합니다';
+    $('#authConfirmField').classList.add('hidden');
+    $('#authSubmitBtn').textContent = '로그인';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = $('#authEmail').value.trim();
+  const password = $('#authPassword').value;
+  const errEl = $('#authError');
+  errEl.classList.add('hidden');
+
+  if (!email || !password) {
+    errEl.textContent = '이메일과 비밀번호를 입력해 주세요.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  if (password.length < 6) {
+    errEl.textContent = '비밀번호는 최소 6자리 이상이어야 합니다.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  if (authMode === 'signup') {
+    const confirm = $('#authPasswordConfirm').value;
+    if (password !== confirm) {
+      errEl.textContent = '비밀번호 확인이 일치하지 않습니다.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    try {
+      $('#authSubmitBtn').disabled = true;
+      $('#authSubmitBtn').textContent = '계정 생성 중...';
+      await fbAuth.createUserWithEmailAndPassword(email, password);
+      $('#authDialog').close();
+      toast('새 계정이 생성되어 로그인되었습니다!');
+    } catch (err) {
+      console.error('Signup error:', err);
+      let msg = err.message;
+      if (err.code === 'auth/email-already-in-use') msg = '이미 사용 중인 이메일입니다. 로그인 탭에서 로그인해 주세요.';
+      else if (err.code === 'auth/invalid-email') msg = '올바른 이메일 형식을 입력해 주세요 (예: user@company.kr).';
+      else if (err.code === 'auth/operation-not-allowed') msg = 'Firebase 콘솔에서 이메일/비밀번호 기능 활성화가 필요합니다.';
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+    } finally {
+      $('#authSubmitBtn').disabled = false;
+      $('#authSubmitBtn').textContent = '회원가입 및 시작하기';
+    }
+  } else {
+    try {
+      $('#authSubmitBtn').disabled = true;
+      $('#authSubmitBtn').textContent = '로그인 중...';
+      await fbAuth.signInWithEmailAndPassword(email, password);
+      $('#authDialog').close();
+      toast('로그인되었습니다!');
+    } catch (err) {
+      console.error('Login error:', err);
+      let msg = err.message;
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        msg = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = '올바른 이메일 형식을 입력해 주세요.';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = '로그인 시도가 많아 일시 차단되었습니다. 잠시 후 다시 시도해 주세요.';
+      }
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+    } finally {
+      $('#authSubmitBtn').disabled = false;
+      $('#authSubmitBtn').textContent = '로그인';
+    }
+  }
+}
+
 async function loginGoogle() {
+
   if (!fbAuth) { toast('Firebase가 초기화되지 않았습니다.'); return; }
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -711,7 +855,7 @@ function storageBoxHTML() {
     return `<div class="storage-box cloud-box">
       <div class="storage-title"><span class="dot" style="background:#f59e0b"></span>로컬 저장 중</div>
       <p class="storage-note">로그인 시 여러 기기에서 실시간으로 자동 동기화됩니다.</p>
-      <button class="cloud-login-btn" data-action="firebase-login">${ico('spark','icon-sm')}Google 로그인</button>
+      <button class="cloud-login-btn" data-action="open-auth">${ico('spark','icon-sm')}계정 로그인 / 회원가입</button>
     </div>`;
   }
 }
@@ -732,7 +876,7 @@ function cloudSettingsHTML() {
       <h3>${ico('spark')}Google 클라우드 동기화 (미연결)</h3>
       <p>구글 계정으로 로그인하면 Firebase Firestore와 연결되어 기기 간 실시간 동기화 및 영구 보존이 가능합니다.</p>
       <div class="guide-actions">
-        <button class="primary" data-action="firebase-login">${ico('spark','icon-sm')}Google 로그인</button>
+        <button class="primary" data-action="open-auth">${ico('spark','icon-sm')}계정 로그인 / 회원가입</button>
       </div>
     </section>`;
   }
@@ -1718,7 +1862,11 @@ async function action(el,e){
  case 'toggle-notion-check': { toggleNotionCheck(el.dataset.itemId, el.dataset.itemType, parseInt(el.dataset.line, 10)); break; }
  case 'notion-tool': { const target = el.closest('.notion-toolbar').dataset.target; applyNotionTool(el.dataset.tool, target); break; }
 
- case 'firebase-login': loginGoogle(); break;
+ case 'open-auth': openAuthDialog('login'); break;
+ case 'close-auth': $('#authDialog').close(); break;
+ case 'auth-tab': updateAuthTab(el.dataset.tab); break;
+ case 'google-login-direct': $('#authDialog').close(); loginGoogle(); break;
+ case 'firebase-login': openAuthDialog('login'); break;
  case 'firebase-logout': logoutGoogle(); break;
  case 'sync-now': uploadToCloud(true); break;
  case 'sync-download': downloadFromCloud(true); break;
@@ -1800,6 +1948,7 @@ document.addEventListener('change',e=>{
  if(el.id==='importFile')importJSON(el.files[0]);
 });
 document.addEventListener('submit',e=>{
+ if(e.target.id==='authForm'){handleAuthSubmit(e);return;}
  if(e.target.id==='quickForm'){e.preventDefault();quickAdd($('#quickTitle').value)}
  if(e.target.id==='editForm')submitEditor(e).catch(err=>{console.error(err);formError('저장 중 문제가 발생했습니다. 입력 내용을 확인해 주세요.')});
  if(e.target.id==='listForm'){
