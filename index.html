@@ -562,6 +562,9 @@ dialog::backdrop{background:#07101b80}
         <label for="authPassword">비밀번호</label>
         <input id="authPassword" type="password" required placeholder="비밀번호 (6자리 이상)" autocomplete="current-password">
       </div>
+      <div id="forgotPwdWrap" style="text-align:right;margin-top:4px">
+        <button type="button" class="ghost" data-action="forgot-password" style="font-size:0.75rem;color:var(--sub);padding:3px 6px">비밀번호를 잊으셨나요?</button>
+      </div>
       <div class="field hidden" id="authConfirmField" style="margin-top:10px">
         <label for="authPasswordConfirm">비밀번호 확인</label>
         <input id="authPasswordConfirm" type="password" placeholder="비밀번호를 한 번 더 입력하세요" autocomplete="new-password">
@@ -730,17 +733,42 @@ function updateAuthTab(mode) {
   if (mode === 'signup') {
     $('#authDialogTitle').textContent = '새 계정 생성 (회원가입)';
     $('#authDialogDesc').textContent = '아이디로 쓸 이메일과 비밀번호를 입력해 주세요';
-    $('#authConfirmField').classList.remove('hidden');
+    $('#authConfirmField').classList.remove('hidden'); $('#forgotPwdWrap').classList.add('hidden');
     $('#authSubmitBtn').textContent = '회원가입 및 시작하기';
   } else {
     $('#authDialogTitle').textContent = '계정 로그인';
     $('#authDialogDesc').textContent = '등록한 계정으로 로그인하여 실시간 동기화합니다';
-    $('#authConfirmField').classList.add('hidden');
+    $('#authConfirmField').classList.add('hidden'); $('#forgotPwdWrap').classList.remove('hidden');
     $('#authSubmitBtn').textContent = '로그인';
   }
 }
 
+
+async function resetPassword() {
+  const email = $('#authEmail').value.trim();
+  const errEl = $('#authError');
+  errEl.classList.add('hidden');
+  if (!email) {
+    errEl.textContent = '이메일 주소를 입력하고 [비밀번호를 잊으셨나요?]를 다시 눌러주세요.';
+    errEl.classList.remove('hidden');
+    $('#authEmail').focus();
+    return;
+  }
+  try {
+    await fbAuth.sendPasswordResetEmail(email);
+    toast(email + ' 으로 비밀번호 재설정 메일을 발송했습니다! 메일함을 확인해 주세요.');
+  } catch (err) {
+    console.error('Password reset error:', err);
+    let msg = err.message;
+    if (err.code === 'auth/user-not-found') msg = '가입되어 있지 않은 이메일 주소입니다. [새 계정 생성] 탭에서 가입해 주세요.';
+    else if (err.code === 'auth/invalid-email') msg = '올바른 이메일 형식을 입력해 주세요.';
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+  }
+}
+
 async function handleAuthSubmit(e) {
+
   e.preventDefault();
   const email = $('#authEmail').value.trim();
   const password = $('#authPassword').value;
@@ -1864,6 +1892,7 @@ async function action(el,e){
 
  case 'open-auth': openAuthDialog('login'); break;
  case 'close-auth': $('#authDialog').close(); break;
+ case 'forgot-password': resetPassword(); break;
  case 'auth-tab': updateAuthTab(el.dataset.tab); break;
  case 'google-login-direct': $('#authDialog').close(); loginGoogle(); break;
  case 'firebase-login': openAuthDialog('login'); break;
