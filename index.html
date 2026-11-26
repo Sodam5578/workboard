@@ -516,6 +516,16 @@ dialog::backdrop{background:#07101b80}
 .note-view-meta{display:flex;align-items:center;gap:10px;font-size:.8125rem;color:var(--sub)}
 .note-view-actions{display:flex;gap:6px;flex-shrink:0}
 
+
+/* Topbar Auth Badge */
+.top-auth{display:flex;align-items:center}
+.top-user-pill{display:inline-flex;align-items:center;gap:6px;background:var(--blue-soft);color:var(--blue-ink);border:1px solid var(--accent-border);padding:6px 12px;border-radius:20px;font-size:0.8125rem;font-weight:600;cursor:pointer;transition:.15s}
+.top-user-pill:hover{background:var(--surface-hover);border-color:var(--blue)}
+.user-status-dot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 2px #10b98133;flex-shrink:0}
+.user-email-text{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top-login-pill{display:inline-flex;align-items:center;gap:5px;background:var(--surface-hover);color:var(--text);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:0.8125rem;font-weight:600;cursor:pointer;transition:.15s}
+.top-login-pill:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
 </style>
 </head>
 <body>
@@ -866,6 +876,8 @@ async function logoutGoogle() {
   await fbAuth.signOut();
   currentUser = null;
   renderSidebar();
+  renderTopbar();
+  render();
   toast('로그아웃되었습니다. (현재 데이터는 이 브라우저에 유지됩니다)');
 }
 
@@ -1194,7 +1206,25 @@ function renderSidebar(){
  ${data.lists.map(l=>{const n=representative(pool().filter(o=>!o.done&&o.t.listId===l.id)).length;return `<button class="navbtn ${ui.mode==='list'&&ui.nav==='list:'+l.id?'active':''}" data-action="nav" data-nav="list:${h(l.id)}"><span class="dot listdot" style="--dot:${l.color}"></span><span>${h(l.name)}</span><span class="navcount">${n}</span></button>`}).join('')}
  </div><div class="sidebar-bottom">${storageBoxHTML()}<div class="bottom-actions"><button data-action="settings">${ico('settings','icon-sm')}설정 · 백업</button><button data-action="help">${ico('help','icon-sm')}사용 안내</button></div><p class="brand-version">VERSION 02 · 개인용 업무 공간</p></div>`;
 }
+
+function topAuthHTML(){
+ if(currentUser){
+  const name = currentUser.email ? currentUser.email.split('@')[0] : '내 계정';
+  return `<button type="button" class="top-user-pill" data-action="user-menu" title="${h(currentUser.email)} (클릭하여 계정 정보/로그아웃)">
+   <span class="user-status-dot"></span>
+   <span class="user-email-text">${h(name)}</span>
+   ${ico('down','icon-sm')}
+  </button>`;
+ } else {
+  return `<button type="button" class="top-login-pill" data-action="open-auth" title="계정 로그인 / 회원가입">
+   ${ico('spark','icon-sm')}
+   <span>로그인</span>
+  </button>`;
+ }
+}
+
 function renderTopbar(){
+
  if(ui.widget){
   $('#topbar').innerHTML=`<div class="widget-brand">${ico('checkall')}업무노트 <span class="local-status">미니</span></div><button class="iconbtn theme-toggle" data-action="theme-toggle" aria-label="테마 전환">${ico('moon')}</button><button class="iconbtn" data-action="settings" title="설정 · 백업" aria-label="설정 및 백업">${ico('settings')}</button><button class="iconbtn" data-action="exit-widget" title="전체 화면으로" aria-label="전체 화면으로">${ico('expandwindow')}</button>`;
   applyAppearance();return;
@@ -1203,7 +1233,12 @@ function renderTopbar(){
  $('#topbar').innerHTML=`<button class="iconbtn menu-mobile" data-action="open-menu" aria-label="메뉴 열기">${ico('menu')}</button>
  <div class="mode-switch" aria-label="화면 전환"><button class="${ui.mode==='list'?'active':''}" data-action="mode" data-mode="list" aria-pressed="${ui.mode==='list'}">${ico('list','icon-sm')}업무 목록</button><button class="${ui.mode==='calendar'?'active':''}" data-action="mode" data-mode="calendar" aria-pressed="${ui.mode==='calendar'}">${ico('calendar','icon-sm')}업무 캘린더</button><button class="${ui.mode==='notes'?'active':''}" data-action="mode" data-mode="notes" aria-pressed="${ui.mode==='notes'}">${ico('edit','icon-sm')}업무 노트</button></div>
  <div class="top-search">${ico('search')}<input id="searchInput" type="search" placeholder="업무 · 메모 검색" aria-label="업무 검색" value="${h(ui.search)}" autocomplete="off"><kbd>/</kbd></div>
- <div class="top-actions"><button class="iconbtn size-shortcut" data-action="settings" aria-label="글자 및 화면 크기 설정" title="글자 · 화면 크기">가A</button><button class="iconbtn theme-toggle" data-action="theme-toggle" aria-label="테마 전환">${ico('moon')}</button><button class="secondary mini-launch" data-action="open-widget" title="미니창 열기" aria-label="미니창 열기">${ico('window')}<span>미니창</span></button></div>
+ <div class="top-actions">
+  ${topAuthHTML()}
+  <button class="iconbtn size-shortcut" data-action="settings" aria-label="글자 및 화면 크기 설정" title="글자 · 화면 크기">가A</button>
+  <button class="iconbtn theme-toggle" data-action="theme-toggle" aria-label="테마 전환">${ico('moon')}</button>
+  <button class="secondary mini-launch" data-action="open-widget" title="미니창 열기" aria-label="미니창 열기">${ico('window')}<span>미니창</span></button>
+</div>
  <button class="primary" data-action="new-task" aria-label="업무 추가">${ico('plus','icon-sm')}<span>업무 추가</span></button>`;
  applyAppearance();
  if(focus){$('#searchInput').focus();try{$('#searchInput').setSelectionRange(start,start)}catch(e){}}
@@ -1896,6 +1931,7 @@ async function action(el,e){
  case 'auth-tab': updateAuthTab(el.dataset.tab); break;
  case 'google-login-direct': $('#authDialog').close(); loginGoogle(); break;
  case 'firebase-login': openAuthDialog('login'); break;
+ case 'user-menu': settingsOpen(); break;
  case 'firebase-logout': logoutGoogle(); break;
  case 'sync-now': uploadToCloud(true); break;
  case 'sync-download': downloadFromCloud(true); break;
@@ -2154,7 +2190,10 @@ if (fbAuth) {
   fbAuth.onAuthStateChanged(async (user) => {
     currentUser = user;
     renderSidebar();
+    renderTopbar();
     if (user) {
+      toast(user.email + ' 계정으로 로그인되었습니다.');
+      render();
       lastSyncStr = '확인 중...';
       try {
         const docRef = fbDb.collection('users').doc(user.uid).collection('workboard').doc('main');
